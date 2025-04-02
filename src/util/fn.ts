@@ -56,3 +56,26 @@ export function showMessage(message: string) {
     showHUD(message);
   }
 }
+
+export async function getNowPlaying(): Promise<string> {
+  /*
+    This script hits an error when it can't get the name of the window --
+    this is often due to the window being (closed as opposed to being minimized)
+    since we have to use AS to get the data & can only access what is available,
+    there is no clear workaround for this use case.
+
+    I return "TIDAL" (the default window name) and handle it the same as if it were
+    paused or closed.
+   */
+  return await runAppleScript(`
+      tell application "System Events"
+        try
+        tell process "TIDAL"
+          set windowTitle to name of window 1
+          return windowTitle
+        end tell
+        on error
+          return "TIDAL"
+        end try
+      end tell`);
+}
