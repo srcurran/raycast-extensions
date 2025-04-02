@@ -59,7 +59,9 @@ export default function nowPlayingMenuBar() {
           ))}
         </MenuBarExtra.Section>
       ) : null}
-      <MenuBarExtra.Section>
+      <MenuBarExtra.Section
+        title={nowPlaying !== null && nowPlaying !== "TIDAL" ? undefined : "Open Tidal to see now playing"}
+      >
         <MenuBarExtra.Item title={"Open Tidal"} onAction={() => open("/Applications/Tidal.app")} />
       </MenuBarExtra.Section>
     </MenuBarExtra>
