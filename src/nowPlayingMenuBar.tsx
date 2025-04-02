@@ -1,4 +1,4 @@
-import { checkTidalRunning, getNowPlaying } from "./util/fn";
+import { runTidalCommand, getNowPlaying } from "./util/fn";
 import { MenuBarExtra, open } from "@raycast/api";
 import { useEffect, useState } from "react";
 
@@ -11,122 +11,59 @@ export default function nowPlayingMenuBar() {
   const [nowPlaying, setNowPlaying] = useState<string | null>(null);
   const [fullNowPlaying, setFullNowPlaying] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     async function loadNowPlaying() {
-      // checks if tidal is running
-      const isRunning = await checkTidalRunning();
-
-      //handle non-running scenario - use the same as the default window name
-      if (!isRunning) {
-        setIsLoading(true);
-        setNowPlaying("TIDAL");
-        setIsLoading(false);
-      } else {
-        // handle Tidal running scenario
-        try {
-          setIsLoading(true);
-          // get song info
-          const songInfo = await getNowPlaying();
-
-          // get and set full title -- formatted to break on the first space after 40ch -- to limit menubar width
-          const formattedFullNowPlaying = songInfo.replace(/(.{40}\S*?)(\s+|$)/g, "$1\n");
-          setFullNowPlaying(formattedFullNowPlaying);
-
-          // get and set the short title -- trimmed to the first 20ch
-          const shortenedFullNowPlaying = songInfo.length > 20 ? songInfo.slice(0, 20) + "..." : songInfo;
-          console.log("Song Info: " + shortenedFullNowPlaying);
-          setNowPlaying(shortenedFullNowPlaying as string);
-        } catch (e) {
-          console.error(e);
-        } finally {
+      setIsLoading(true);
+      await runTidalCommand(
+        async () => {
+          const { full, formatted, short } = await getNowPlaying();
+          setNowPlaying(short);
+          setFullNowPlaying(formatted);
           setIsLoading(false);
-        }
-      }
+          console.log(full);
+        },
+        { silent: true }, //passing a silent flag for when Tidal is not running
+      );
+      setIsLoading(false);
     }
     loadNowPlaying();
   }, []);
 
-  const menuItems: JSX.Element =
-    nowPlaying !== null && nowPlaying !== "TIDAL" ? (
-      // if a song is playing -- display title in menubar & show play/skip/prev/shuffle
-      <MenuBarExtra
-        icon={{ source: { light: "icons/tidal-logo-light.svg", dark: "icons/tidal-logo-dark.svg" } }}
-        title={nowPlaying as string}
-        isLoading={isLoading}
-        tooltip={fullNowPlaying as string}
-      >
+  const tidalIcon = {
+    source: { light: "icons/tidal-logo-light.svg", dark: "icons/tidal-logo-dark.svg" },
+  };
+
+  const menuItems: JSX.Element = (
+    <MenuBarExtra
+      icon={tidalIcon}
+      title={nowPlaying !== null && nowPlaying !== "TIDAL" ? (nowPlaying as string) : undefined}
+      isLoading={isLoading}
+      tooltip={fullNowPlaying as string}
+    >
+      {nowPlaying !== null && nowPlaying !== "TIDAL" ? (
         <MenuBarExtra.Section title={fullNowPlaying as string}>
-          <MenuBarExtra.Item
-            icon={"icons/pause.svg"}
-            title={"Pause"}
-            onAction={async () => {
-              try {
-                await doPause();
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-          />
-          <MenuBarExtra.Item
-            icon={"icons/next.svg"}
-            title={"Next Song"}
-            onAction={async () => {
-              try {
-                await doNextSong();
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-          />
-          <MenuBarExtra.Item
-            icon={"icons/previous.svg"}
-            title={"Previous Song"}
-            onAction={async () => {
-              try {
-                await doPrevSong();
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-          />
-          <MenuBarExtra.Item
-            icon={"icons/shuffle.svg"}
-            title={"Shuffle"}
-            onAction={async () => {
-              try {
-                await doShuffle();
-              } catch (err) {
-                console.error(err);
-              }
-            }}
-          />
+          {[
+            { icon: "icons/pause.svg", title: "Pause", action: doPause },
+            { icon: "icons/next.svg", title: "Next Song", action: doNextSong },
+            { icon: "icons/previous.svg", title: "Previous Song", action: doPrevSong },
+            { icon: "icons/shuffle.svg", title: "Shuffle", action: doShuffle },
+          ].map(({ icon, title, action }) => (
+            <MenuBarExtra.Item
+              key={title}
+              icon={icon}
+              title={title}
+              onAction={async () => {
+                await action();
+              }}
+            />
+          ))}
         </MenuBarExtra.Section>
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            title={"Open Tidal"}
-            onAction={() => {
-              open("/Applications/Tidal.app");
-            }}
-          />
-        </MenuBarExtra.Section>
-      </MenuBarExtra>
-    ) : (
-      // if no song is currently playing -- show just the tidal icon and sub-item to open the app
-      <MenuBarExtra
-        icon={{ source: { light: "icons/tidal-logo-light.svg", dark: "icons/tidal-logo-dark.svg" } }}
-        isLoading={isLoading}
-      >
-        <MenuBarExtra.Section>
-          <MenuBarExtra.Item
-            title={"Open Tidal"}
-            onAction={() => {
-              open("/Applications/Tidal.app");
-            }}
-          />
-        </MenuBarExtra.Section>
-      </MenuBarExtra>
-    );
+      ) : null}
+      <MenuBarExtra.Section>
+        <MenuBarExtra.Item title={"Open Tidal"} onAction={() => open("/Applications/Tidal.app")} />
+      </MenuBarExtra.Section>
+    </MenuBarExtra>
+  );
 
   return <>{menuItems}</>;
 }

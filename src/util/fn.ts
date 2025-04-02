@@ -3,7 +3,7 @@ import { runAppleScript } from "run-applescript";
 import { getPreferenceValues } from "@raycast/api";
 import { LanguageCode, getMenuOptionsByLanguage, MenuOptions } from "./lang";
 
-export async function checkTidalRunning(): Promise<boolean> {
+export async function checkTidalRunning(options?: { silent?: boolean }): Promise<boolean> {
   try {
     const res = await runAppleScript(`
         tell application "System Events"
@@ -15,19 +15,21 @@ export async function checkTidalRunning(): Promise<boolean> {
         end tell
       `);
     const isRunning = res.trim().toLowerCase() === "true";
-    if (!isRunning) {
+    if (!isRunning && !options?.silent) {
       await showHUD("Tidal: Not running ❌");
     }
     return isRunning;
   } catch (error) {
     console.error("Error checking if Tidal is running:", error);
-    await showHUD("Tidal: Error checking if running ❌");
+    if (!options?.silent) {
+      await showHUD("Tidal: Error checking if running ❌");
+    }
     return false;
   }
 }
 
-export async function runTidalCommand(fn: () => Promise<void>): Promise<void> {
-  const tidalRunning = await checkTidalRunning();
+export async function runTidalCommand(fn: () => Promise<void>, options?: { silent?: boolean }): Promise<void> {
+  const tidalRunning = await checkTidalRunning(options);
   if (tidalRunning) {
     try {
       await fn();
@@ -57,7 +59,7 @@ export function showMessage(message: string) {
   }
 }
 
-export async function getNowPlaying(): Promise<string> {
+export async function getNowPlaying(): Promise<{ full: string; formatted: string; short: string }> {
   /*
     This script hits an error when it can't get the name of the window --
     this is often due to the window being (closed as opposed to being minimized)
@@ -67,7 +69,7 @@ export async function getNowPlaying(): Promise<string> {
     I return "TIDAL" (the default window name) and handle it the same as if it were
     paused or closed.
    */
-  return await runAppleScript(`
+  const songInfo = await runAppleScript(`
       tell application "System Events"
         try
         tell process "TIDAL"
@@ -78,4 +80,12 @@ export async function getNowPlaying(): Promise<string> {
           return "TIDAL"
         end try
       end tell`);
+  console.log(songInfo);
+  const full = songInfo;
+  // formatted returns a newline (\n) after the first space after the 40ch
+  const formatted = songInfo.replace(/(.{40}\S*?)(\s+|$)/g, "$1\n");
+  // get and set the short title -- trimmed to the first 20ch
+  const short = songInfo.length > 20 ? songInfo.slice(0, 20) + "..." : songInfo;
+
+  return { full, formatted, short };
 }
