@@ -7,6 +7,9 @@ export default async function showNowPlaying() {
     await closeMainWindow();
 
     // Get the window title from AppleScript
-    showMessage(await getNowPlaying());
-});
+    const nowPlaying = await getNowPlaying();
+    nowPlaying !== null && nowPlaying !== "TIDAL"
+      ? showMessage(nowPlaying)
+      : showMessage("Now Playing is Not Available - Open Tidal");
+  });
 }
