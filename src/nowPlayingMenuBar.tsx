@@ -38,19 +38,23 @@ export default function nowPlayingMenuBar() {
       icon={tidalIcon}
       title={nowPlaying !== null && nowPlaying !== "TIDAL" ? (nowPlaying as string) : undefined}
       isLoading={isLoading}
-      tooltip={fullNowPlaying as string}
+      tooltip={
+        fullNowPlaying !== null && nowPlaying !== "TIDAL"
+          ? (nowPlaying as string)
+          : "Tidal must be minimized, hidden or open to show Now Playing information"
+      }
     >
       {nowPlaying !== null && nowPlaying !== "TIDAL" ? (
         <MenuBarExtra.Section title={fullNowPlaying as string}>
           {[
-            { icon: "icons/pause.svg", title: "Pause", action: doPause },
-            { icon: "icons/next.svg", title: "Next Song", action: doNextSong },
-            { icon: "icons/previous.svg", title: "Previous Song", action: doPrevSong },
-            { icon: "icons/shuffle.svg", title: "Shuffle", action: doShuffle },
+            { icon: "⏸️", title: "Pause", action: doPause },
+            { icon: "⏩", title: "Next Song", action: doNextSong },
+            { icon: "⏪", title: "Previous Song", action: doPrevSong },
+            { icon: "🔀", title: "Shuffle", action: doShuffle },
           ].map(({ icon, title, action }) => (
             <MenuBarExtra.Item
-              key={title}
               icon={icon}
+              key={title}
               title={title}
               onAction={async () => {
                 await action();
@@ -59,9 +63,7 @@ export default function nowPlayingMenuBar() {
           ))}
         </MenuBarExtra.Section>
       ) : null}
-      <MenuBarExtra.Section
-        title={nowPlaying !== null && nowPlaying !== "TIDAL" ? undefined : "Open Tidal to see now playing"}
-      >
+      <MenuBarExtra.Section>
         <MenuBarExtra.Item title={"Open Tidal"} onAction={() => open("/Applications/Tidal.app")} />
       </MenuBarExtra.Section>
     </MenuBarExtra>
