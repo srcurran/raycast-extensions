@@ -20,7 +20,6 @@ export default function nowPlayingMenuBar() {
           setNowPlaying(short);
           setFullNowPlaying(formatted);
           setIsLoading(false);
-          console.log(full);
         },
         { silent: true }, //passing a silent flag for when Tidal is not running
       );
